@@ -25,8 +25,8 @@ plugins {
 allprojects {
    apply(plugin = "org.jetbrains.kotlin.jvm")
 
-   group = Libs.org
-   version = Ci.version
+   group = Ci.org
+   version = Ci.publishVersion
 
    dependencies {
       testImplementation(Libs.Kotest.assertions)
