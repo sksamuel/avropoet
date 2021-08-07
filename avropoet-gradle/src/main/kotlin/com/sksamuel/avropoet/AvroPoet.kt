@@ -16,6 +16,7 @@ import com.squareup.kotlinpoet.asTypeName
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
+import org.apache.avro.util.Utf8
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.reflect.KClass
@@ -91,7 +92,10 @@ class AvroPoet {
       record(schema)
 
       val spec = FileSpec.builder(schema.namespace, schema.name)
+
       spec.addImport(GenericData::class.java.`package`.name, "GenericData")
+      spec.addImport(Utf8::class.java.`package`.name, "Utf8")
+
       spec.addFunction(encodePrimitiveFn(String::class))
       spec.addFunction(encodePrimitiveFn(Long::class))
       spec.addFunction(encodePrimitiveFn(Double::class))
@@ -168,22 +172,41 @@ class AvroPoet {
       }
    }
 
+   private fun encodeString(name: String): CodeBlock {
+      return CodeBlock.builder().add("Utf8(name)").build()
+   }
+
+   private fun encodeInt(name: String): CodeBlock {
+      return CodeBlock.builder().add(name).build()
+   }
+
+   private fun encodeBoolean(name: String): CodeBlock {
+      return CodeBlock.builder().add(name).build()
+   }
+
+   private fun encodeLong(name: String): CodeBlock {
+      return CodeBlock.builder().add(name).build()
+   }
+
+   private fun encodeList(name: String, schema: Schema): CodeBlock {
+      return CodeBlock.builder().add("GenericData.Array(schema.getField(%S).schema().elementType, $name)", name).build()
+   }
+
    private fun encodeField(field: Schema.Field): CodeBlock {
       return when (field.schema().type) {
          Schema.Type.RECORD -> CodeBlock.builder().add("encodeInt(${field.name()})").build()
          Schema.Type.ENUM -> TODO()
-         Schema.Type.ARRAY -> CodeBlock.builder()
-            .add("encodeList(${field.name()}, schema.getField(%S).schema())", field.name()).build()
+         Schema.Type.ARRAY -> encodeList(field.name(), field.schema().elementType)
          Schema.Type.MAP -> CodeBlock.builder().add("encodeMap(${field.name()})", field.name()).build()
          Schema.Type.UNION -> TODO()
          Schema.Type.FIXED -> TODO()
-         Schema.Type.STRING -> CodeBlock.builder().add("encodeString(${field.name()})", field.name()).build()
+         Schema.Type.STRING -> encodeString(field.name())
          Schema.Type.BYTES -> TODO()
-         Schema.Type.INT -> CodeBlock.builder().add("encodeInt(${field.name()})", field.name()).build()
-         Schema.Type.LONG -> CodeBlock.builder().add("encodeLong(${field.name()})", field.name()).build()
+         Schema.Type.INT -> encodeInt(field.name())
+         Schema.Type.LONG -> encodeLong(field.name())
          Schema.Type.FLOAT -> CodeBlock.builder().add("encodeFloat(${field.name()})", field.name()).build()
          Schema.Type.DOUBLE -> CodeBlock.builder().add("encodeDouble(${field.name()})", field.name()).build()
-         Schema.Type.BOOLEAN -> CodeBlock.builder().add("encodeBoolean(${field.name()})", field.name()).build()
+         Schema.Type.BOOLEAN -> encodeBoolean(field.name())
          Schema.Type.NULL -> TODO()
       }
    }
