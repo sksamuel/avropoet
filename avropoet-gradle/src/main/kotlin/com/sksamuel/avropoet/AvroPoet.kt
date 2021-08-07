@@ -12,6 +12,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import org.apache.avro.Schema
+import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
 import java.nio.file.Files
 import java.nio.file.Path
@@ -27,6 +28,7 @@ class AvroPoet {
       record(schema)
 
       val spec = FileSpec.builder(schema.namespace, schema.name)
+      spec.addImport(GenericData::class.java.`package`.name, "GenericData")
       types.forEach { spec.addType(it) }
       encoders.forEach { spec.addFunction(it) }
 
@@ -63,6 +65,25 @@ class AvroPoet {
       }
    }
 
+   private fun type(schema: Schema): String {
+      return when (schema.type) {
+         Schema.Type.RECORD -> schema.name
+         Schema.Type.ENUM -> schema.name
+         Schema.Type.ARRAY -> "List<${type(schema.elementType)}>"
+         Schema.Type.MAP -> TODO()
+         Schema.Type.UNION -> TODO()
+         Schema.Type.FIXED -> TODO()
+         Schema.Type.STRING -> "String"
+         Schema.Type.BYTES -> "ByteArray"
+         Schema.Type.INT -> "Int"
+         Schema.Type.LONG -> "Long"
+         Schema.Type.FLOAT -> "Float"
+         Schema.Type.DOUBLE -> "Double"
+         Schema.Type.BOOLEAN -> "Boolean"
+         Schema.Type.NULL -> TODO()
+      }
+   }
+
    private fun record(schema: Schema): ClassName {
       require(schema.type == Schema.Type.RECORD) { "$schema must be record" }
 
@@ -83,7 +104,7 @@ class AvroPoet {
          .returns(ref)
          .addCode("return ${schema.name}(\n")
       schema.fields.forEach {
-         decoder.addCode("\trecord.get(%S),\n", it.name())
+         decoder.addCode("\trecord.get(%S) as ${type(it.schema())},\n", it.name())
       }
       decoder.addCode(")")
 
@@ -102,7 +123,7 @@ class AvroPoet {
          .receiver(ref)
          .addParameter("schema", Schema::class.asClassName())
          .returns(GenericRecord::class.asClassName())
-         .addStatement("val record = GenericRecord(schema)")
+         .addStatement("val record = GenericData.Record(schema)")
       schema.fields.forEach {
          encoder.addStatement("record.put(%S, this.${it.name()})", it.name())
       }

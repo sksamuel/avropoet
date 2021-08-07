@@ -11,5 +11,4 @@ pluginManagement {
    }
 }
 
-include("avropoet-core")
 include("avropoet-gradle")
