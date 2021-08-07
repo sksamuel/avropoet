@@ -25,17 +25,38 @@ class AvroPoet {
    private val types = mutableListOf<TypeSpec>()
    private val encoders = mutableListOf<FunSpec>()
 
-   private fun extractPrimitiveFn(type: KClass<*>) =
-      FunSpec.builder("extract${type.simpleName}")
+   private fun encodePrimitiveFn(type: KClass<*>) =
+      FunSpec.builder("encode${type.simpleName}")
          .addModifiers(KModifier.PRIVATE)
-         .addParameter("name", String::class)
-         .addParameter("record", GenericRecord::class)
+         .addParameter("value", type)
          .returns(type)
-         .addCode("return record.get(name) as ${type.simpleName}")
+         .addCode("return value")
          .build()
 
-   private val extractList =
-      FunSpec.builder("extractList")
+   private val encodeList =
+      FunSpec.builder("encodeList")
+         .addModifiers(KModifier.PRIVATE)
+         .addTypeVariable(TypeVariableName("T", Any::class))
+         .addParameter("value", List::class.asClassName().parameterizedBy(TypeVariableName("T")))
+         .addParameter("schema", Schema::class.asClassName())
+         .returns(GenericData.Array::class.asTypeName().parameterizedBy(TypeVariableName("T")))
+         .addCode("return GenericData.Array(schema, value)")
+         .build()
+
+   private val encodeMap =
+      FunSpec.builder("encodeMap")
+         .addModifiers(KModifier.PRIVATE)
+         .addTypeVariable(TypeVariableName("V", Any::class))
+         .addParameter(
+            "value",
+            Map::class.asClassName().parameterizedBy(listOf(String::class.asTypeName(), TypeVariableName("V")))
+         )
+         .returns(Map::class.asClassName().parameterizedBy(String::class.asTypeName(), TypeVariableName("V")))
+         .addCode("return value as Map<String, V>")
+         .build()
+
+   private val decodeList =
+      FunSpec.builder("decodeList")
          .addModifiers(KModifier.PRIVATE)
          .addTypeVariable(TypeVariableName("T", Any::class))
          .addParameter("name", String::class)
@@ -44,8 +65,8 @@ class AvroPoet {
          .addCode("return record.get(name) as List<T>")
          .build()
 
-   private val extractMap =
-      FunSpec.builder("extractMap")
+   private val decodeMap =
+      FunSpec.builder("decodeMap")
          .addModifiers(KModifier.PRIVATE)
          .addTypeVariable(TypeVariableName("V", Any::class))
          .addParameter("name", String::class)
@@ -54,6 +75,16 @@ class AvroPoet {
          .addCode("return record.get(name) as Map<String, V>")
          .build()
 
+   private fun decodePrimitiveFn(type: KClass<*>) =
+      FunSpec.builder("decode${type.simpleName}")
+         .addModifiers(KModifier.PRIVATE)
+         .addParameter("name", String::class)
+         .addParameter("record", GenericRecord::class)
+         .returns(type)
+         .addCode("return record.get(name) as ${type.simpleName}")
+         .build()
+
+
    fun generate(input: Path, outputBase: Path) {
 
       val schema = Schema.Parser().parse(input.toFile())
@@ -61,14 +92,24 @@ class AvroPoet {
 
       val spec = FileSpec.builder(schema.namespace, schema.name)
       spec.addImport(GenericData::class.java.`package`.name, "GenericData")
-      spec.addFunction(extractPrimitiveFn(String::class))
-      spec.addFunction(extractPrimitiveFn(Long::class))
-      spec.addFunction(extractPrimitiveFn(Double::class))
-      spec.addFunction(extractPrimitiveFn(Int::class))
-      spec.addFunction(extractPrimitiveFn(Float::class))
-      spec.addFunction(extractPrimitiveFn(Boolean::class))
-      spec.addFunction(extractList)
-      spec.addFunction(extractMap)
+      spec.addFunction(encodePrimitiveFn(String::class))
+      spec.addFunction(encodePrimitiveFn(Long::class))
+      spec.addFunction(encodePrimitiveFn(Double::class))
+      spec.addFunction(encodePrimitiveFn(Int::class))
+      spec.addFunction(encodePrimitiveFn(Float::class))
+      spec.addFunction(encodePrimitiveFn(Boolean::class))
+      spec.addFunction(encodeList)
+      spec.addFunction(encodeMap)
+
+      spec.addFunction(decodePrimitiveFn(String::class))
+      spec.addFunction(decodePrimitiveFn(Long::class))
+      spec.addFunction(decodePrimitiveFn(Double::class))
+      spec.addFunction(decodePrimitiveFn(Int::class))
+      spec.addFunction(decodePrimitiveFn(Float::class))
+      spec.addFunction(decodePrimitiveFn(Boolean::class))
+
+      spec.addFunction(decodeList)
+      spec.addFunction(decodeMap)
       types.distinctBy { it.name }.forEach { spec.addType(it) }
       encoders.forEach { spec.addFunction(it) }
 
@@ -127,21 +168,41 @@ class AvroPoet {
       }
    }
 
-   private fun extractField(field: Schema.Field): CodeBlock {
+   private fun encodeField(field: Schema.Field): CodeBlock {
       return when (field.schema().type) {
-         Schema.Type.RECORD -> CodeBlock.builder().addStatement("extractInt(%S, record),", field.name()).build()
+         Schema.Type.RECORD -> CodeBlock.builder().add("encodeInt(${field.name()})").build()
          Schema.Type.ENUM -> TODO()
-         Schema.Type.ARRAY -> CodeBlock.builder().addStatement("extractList(%S, record),", field.name()).build()
-         Schema.Type.MAP -> CodeBlock.builder().addStatement("extractMap(%S, record),", field.name()).build()
+         Schema.Type.ARRAY -> CodeBlock.builder()
+            .add("encodeList(${field.name()}, schema.getField(%S).schema())", field.name()).build()
+         Schema.Type.MAP -> CodeBlock.builder().add("encodeMap(${field.name()})", field.name()).build()
          Schema.Type.UNION -> TODO()
          Schema.Type.FIXED -> TODO()
-         Schema.Type.STRING -> CodeBlock.builder().addStatement("extractString(%S, record),", field.name()).build()
+         Schema.Type.STRING -> CodeBlock.builder().add("encodeString(${field.name()})", field.name()).build()
          Schema.Type.BYTES -> TODO()
-         Schema.Type.INT -> CodeBlock.builder().addStatement("extractInt(%S, record),", field.name()).build()
-         Schema.Type.LONG -> CodeBlock.builder().addStatement("extractLong(%S, record),", field.name()).build()
-         Schema.Type.FLOAT -> CodeBlock.builder().addStatement("extractFloat(%S, record),", field.name()).build()
-         Schema.Type.DOUBLE -> CodeBlock.builder().addStatement("extractDouble(%S, record),", field.name()).build()
-         Schema.Type.BOOLEAN -> CodeBlock.builder().addStatement("extractBoolean(%S, record),", field.name()).build()
+         Schema.Type.INT -> CodeBlock.builder().add("encodeInt(${field.name()})", field.name()).build()
+         Schema.Type.LONG -> CodeBlock.builder().add("encodeLong(${field.name()})", field.name()).build()
+         Schema.Type.FLOAT -> CodeBlock.builder().add("encodeFloat(${field.name()})", field.name()).build()
+         Schema.Type.DOUBLE -> CodeBlock.builder().add("encodeDouble(${field.name()})", field.name()).build()
+         Schema.Type.BOOLEAN -> CodeBlock.builder().add("encodeBoolean(${field.name()})", field.name()).build()
+         Schema.Type.NULL -> TODO()
+      }
+   }
+
+   private fun decodeField(field: Schema.Field): CodeBlock {
+      return when (field.schema().type) {
+         Schema.Type.RECORD -> CodeBlock.builder().addStatement("decodeInt(%S, record),", field.name()).build()
+         Schema.Type.ENUM -> TODO()
+         Schema.Type.ARRAY -> CodeBlock.builder().addStatement("decodeList(%S, record),", field.name()).build()
+         Schema.Type.MAP -> CodeBlock.builder().addStatement("decodeMap(%S, record),", field.name()).build()
+         Schema.Type.UNION -> TODO()
+         Schema.Type.FIXED -> TODO()
+         Schema.Type.STRING -> CodeBlock.builder().addStatement("decodeString(%S, record),", field.name()).build()
+         Schema.Type.BYTES -> TODO()
+         Schema.Type.INT -> CodeBlock.builder().addStatement("decodeInt(%S, record),", field.name()).build()
+         Schema.Type.LONG -> CodeBlock.builder().addStatement("decodeLong(%S, record),", field.name()).build()
+         Schema.Type.FLOAT -> CodeBlock.builder().addStatement("decodeFloat(%S, record),", field.name()).build()
+         Schema.Type.DOUBLE -> CodeBlock.builder().addStatement("decodeDouble(%S, record),", field.name()).build()
+         Schema.Type.BOOLEAN -> CodeBlock.builder().addStatement("decodeBoolean(%S, record),", field.name()).build()
          Schema.Type.NULL -> TODO()
       }
    }
@@ -167,7 +228,7 @@ class AvroPoet {
 
       decoder.addCode("return ${schema.name}(\n")
       schema.fields.forEach {
-         decoder.addCode(extractField(it))
+         decoder.addCode(decodeField(it))
       }
       decoder.addCode(")")
 
@@ -187,7 +248,7 @@ class AvroPoet {
          .returns(GenericRecord::class.asClassName())
          .addStatement("val record = GenericData.Record(schema)")
       schema.fields.forEach {
-         encoder.addStatement("record.put(%S, this.${it.name()})", it.name())
+         encoder.addStatement("record.put(%S, ${encodeField(it)})", it.name())
       }
       encoder.addStatement("return record")
          .build()
