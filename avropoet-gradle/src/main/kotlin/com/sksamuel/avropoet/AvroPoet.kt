@@ -95,11 +95,15 @@ class AvroPoet {
          .build()
          .apply { types.add(this) }
 
-      FunSpec.builder("encode")
+      val encoder = FunSpec.builder("encode")
          .receiver(ref)
-         .returns(Int::class)
-         .addStatement("var s = this * this")
-         .addStatement("return s")
+         .addParameter("schema", Schema::class.asClassName())
+         .returns(GenericRecord::class.asClassName())
+         .addStatement("val record = GenericRecord(schema)")
+      schema.fields.forEach {
+         encoder.addStatement("record.put(%S, this.${it.name()})", it.name())
+      }
+      encoder.addStatement("return record")
          .build()
          .apply { encoders.add(this) }
 
