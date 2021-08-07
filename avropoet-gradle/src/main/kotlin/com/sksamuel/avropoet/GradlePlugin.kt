@@ -3,7 +3,6 @@ package com.sksamuel.avropoet
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
 
@@ -16,8 +15,8 @@ class GradlePlugin : Plugin<Project> {
          src.listDirectoryEntries()
             .filter { it.name.endsWith(".json") || it.name.endsWith(".avro") || it.name.endsWith(".avdl") }
             .forEach {
-               println("Generating $it")
-               AvroPoet.generate(it, outputBase)
+               println("Processing $it")
+               AvroPoet().generate(it, outputBase)
             }
       }
       task.description = "Generate kotlin data classes from avro definitions"
