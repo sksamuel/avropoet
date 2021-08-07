@@ -29,7 +29,7 @@ class AvroPoet {
 
       val spec = FileSpec.builder(schema.namespace, schema.name)
       spec.addImport(GenericData::class.java.`package`.name, "GenericData")
-      types.forEach { spec.addType(it) }
+      types.distinctBy { it.name }.forEach { spec.addType(it) }
       encoders.forEach { spec.addFunction(it) }
 
       val outputPath = schema.namespace.split('.')
@@ -50,7 +50,10 @@ class AvroPoet {
          Schema.Type.RECORD -> record(schema)
          Schema.Type.ENUM -> TODO()
          Schema.Type.ARRAY -> ClassName("kotlin.collections", "List").parameterizedBy(ref(schema.elementType))
-         Schema.Type.MAP -> TODO()
+         Schema.Type.MAP -> ClassName("kotlin.collections", "Map").parameterizedBy(
+            String::class.asClassName(),
+            ref(schema.valueType)
+         )
          Schema.Type.UNION -> TODO()
          Schema.Type.FIXED -> TODO()
          Schema.Type.STRING -> String::class.asTypeName()
@@ -70,7 +73,7 @@ class AvroPoet {
          Schema.Type.RECORD -> schema.name
          Schema.Type.ENUM -> schema.name
          Schema.Type.ARRAY -> "List<${type(schema.elementType)}>"
-         Schema.Type.MAP -> TODO()
+         Schema.Type.MAP -> "Map<String, ${type(schema.valueType)}>"
          Schema.Type.UNION -> TODO()
          Schema.Type.FIXED -> TODO()
          Schema.Type.STRING -> "String"
