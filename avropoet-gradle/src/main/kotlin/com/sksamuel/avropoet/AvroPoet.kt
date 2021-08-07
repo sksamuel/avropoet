@@ -81,12 +81,15 @@ class AvroPoet {
       val decoder = FunSpec.builder("decode")
          .addParameter("record", GenericRecord::class.asClassName())
          .returns(ref)
-         .addStatement("var s = this * this")
-         .addStatement("return s")
-         .build()
+         .addCode("return ${schema.name}(\n")
+      schema.fields.forEach {
+         decoder.addCode("\trecord.get(%S),\n", it.name())
+      }
+      decoder.addCode(")")
+
 
       val companion = TypeSpec.companionObjectBuilder()
-         .addFunction(decoder)
+         .addFunction(decoder.build())
          .build()
 
       builder
