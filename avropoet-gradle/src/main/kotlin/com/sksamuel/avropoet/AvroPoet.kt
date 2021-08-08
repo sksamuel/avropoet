@@ -118,9 +118,11 @@ class AvroPoet {
 
    private fun decodeString(name: String, schema: Schema): CodeBlock {
       return CodeBlock.builder().addStatement("when($name) {", name)
+         .indent()
          .addStatement("is String -> $name")
          .addStatement("is Utf8 -> $name.toString()")
          .addStatement("else -> error(\"Unknown string type $$name\")")
+         .unindent()
          .add("}")
          .build()
    }
@@ -175,20 +177,20 @@ class AvroPoet {
    private fun decodeEnum(name: String, schema: Schema): CodeBlock {
       val enumClass = schema.name
       return CodeBlock.builder()
-         .add("$enumClass.valueOf(record.get(%S).toString())", name)
+         .add("$enumClass.valueOf($name.toString())", name)
          .build()
    }
 
    private fun decodeUnion(name: String, schema: Schema): CodeBlock {
       require(schema.isNullableUnion())
       return CodeBlock.builder()
-         .add("record.get(%S)?.let { ${decode(schema.types[1], name)} }", name)
+         .add("$name?.let { ${decode(schema.types[1], "it")} }", name)
          .build()
    }
 
    private fun decodeLong(name: String, schema: Schema): CodeBlock {
       return when (schema.logicalType) {
-         is LogicalTypes.TimestampMillis -> CodeBlock.builder().add("java.sql.Timestamp($name as Long)").build()
+         is LogicalTypes.TimestampMillis -> CodeBlock.builder().add("Timestamp($name as Long)").build()
          else -> CodeBlock.builder().add("$name as Long").build()
       }
    }
@@ -229,15 +231,22 @@ class AvroPoet {
          .addParameter("record", GenericRecord::class.asClassName())
          .returns(ref)
 
+      val decoderBody = CodeBlock.builder()
+
       schema.fields.forEach {
-         decoder.addStatement("val ${it.name()} = record.get(%S)", it.name())
+         decoderBody.addStatement("val ${it.name()} = record.get(%S)", it.name())
       }
 
-      decoder.addCode("return ${schema.name}(\n")
+      decoderBody.addStatement("")
+
+      decoderBody.addStatement("return ${schema.name}(").indent()
       schema.fields.forEach {
-         decoder.addCode(decode(it.schema(), it.name()).toBuilder().add(",\n").build())
+         decoderBody.add(decode(it.schema(), it.name()).toBuilder().add(",\n").build())
       }
-      decoder.addCode(")")
+      decoderBody.unindent()
+      decoderBody.addStatement(")")
+
+      decoder.addCode(decoderBody.build())
 
       val companion = TypeSpec.companionObjectBuilder()
          .addFunction(decoder.build())
