@@ -112,25 +112,14 @@ class AvroPoet {
       return CodeBlock.builder().add("GenericData.Array(schema.getField(%S).schema().elementType, $name)", name).build()
    }
 
-   private fun encodeEnum(name: String, schema: Schema): CodeBlock {
+   private fun encodeEnum(name: String): CodeBlock {
       return CodeBlock.builder().add("GenericData.EnumSymbol(schema, $name.name)").build()
-   }
-
-   private fun decodeString(name: String, schema: Schema): CodeBlock {
-      return CodeBlock.builder().addStatement("when($name) {", name)
-         .indent()
-         .addStatement("is String -> $name")
-         .addStatement("is Utf8 -> $name.toString()")
-         .addStatement("else -> error(\"Unknown string type $$name\")")
-         .unindent()
-         .add("}")
-         .build()
    }
 
    private fun encode(schema: Schema, name: String): CodeBlock {
       return when (schema.type) {
          Schema.Type.RECORD -> CodeBlock.builder().add("encodeInt(${name})").build()
-         Schema.Type.ENUM -> encodeEnum(name, schema)
+         Schema.Type.ENUM -> encodeEnum(name)
          Schema.Type.ARRAY -> encodeList(name, schema.elementType)
          Schema.Type.MAP -> CodeBlock.builder().add("encodeMap(${name})", name).build()
          Schema.Type.UNION -> encodeUnion(name, schema)
@@ -151,48 +140,8 @@ class AvroPoet {
       return CodeBlock.builder().add("$name?.let { ${encode(schema.types[1], name)} }").build()
    }
 
-   private fun Schema.isNullableUnion(): Boolean {
-      return isUnion && types.size == 2 && types[0].type == Schema.Type.NULL && types[1].type != Schema.Type.NULL
-   }
-
-   private fun decode(schema: Schema, name: String): CodeBlock {
-      return when (schema.type) {
-         Schema.Type.RECORD -> CodeBlock.builder().addStatement("decodeInt(%S, record)", name).build()
-         Schema.Type.ENUM -> decodeEnum(name, schema)
-         Schema.Type.ARRAY -> CodeBlock.builder().addStatement("decodeList(%S, record)", name).build()
-         Schema.Type.MAP -> CodeBlock.builder().addStatement("decodeMap(%S, record)", name).build()
-         Schema.Type.UNION -> decodeUnion(name, schema)
-         Schema.Type.FIXED -> TODO("f")
-         Schema.Type.STRING -> decodeString(name, schema)
-         Schema.Type.BYTES -> TODO()
-         Schema.Type.INT -> CodeBlock.builder().addStatement("decodeInt(%S, record)", name).build()
-         Schema.Type.LONG -> decodeLong(name, schema)
-         Schema.Type.FLOAT -> CodeBlock.builder().addStatement("decodeFloat(%S, record)", name).build()
-         Schema.Type.DOUBLE -> CodeBlock.builder().addStatement("decodeDouble(%S, record)", name).build()
-         Schema.Type.BOOLEAN -> CodeBlock.builder().addStatement("decodeBoolean(%S, record)", name).build()
-         Schema.Type.NULL -> TODO("n")
-      }
-   }
-
-   private fun decodeEnum(name: String, schema: Schema): CodeBlock {
-      val enumClass = schema.name
-      return CodeBlock.builder()
-         .add("$enumClass.valueOf($name.toString())", name)
-         .build()
-   }
-
-   private fun decodeUnion(name: String, schema: Schema): CodeBlock {
-      require(schema.isNullableUnion())
-      return CodeBlock.builder()
-         .add("$name?.let { ${decode(schema.types[1], "it")} }", name)
-         .build()
-   }
-
-   private fun decodeLong(name: String, schema: Schema): CodeBlock {
-      return when (schema.logicalType) {
-         is LogicalTypes.TimestampMillis -> CodeBlock.builder().add("Timestamp($name as Long)").build()
-         else -> CodeBlock.builder().add("$name as Long").build()
-      }
+   private fun decodeList(name: String, schema: Schema): CodeBlock {
+      TODO("Not yet implemented")
    }
 
    private fun enum(schema: Schema): ClassName {
