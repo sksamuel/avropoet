@@ -93,8 +93,11 @@ class AvroPoet {
       return CodeBlock.builder().add(name).build()
    }
 
-   private fun encodeLong(name: String): CodeBlock {
-      return CodeBlock.builder().add(name).build()
+   private fun encodeLong(name: String, schema: Schema): CodeBlock {
+      return when (schema.logicalType) {
+         is LogicalTypes.TimestampMillis -> CodeBlock.builder().add("$name.time").build()
+         else -> CodeBlock.builder().add(name).build()
+      }
    }
 
    private fun encodeDouble(name: String): CodeBlock {
@@ -122,25 +125,6 @@ class AvroPoet {
          .build()
    }
 
-   private fun encodeField(field: Schema.Field): CodeBlock {
-      return when (field.schema().type) {
-         Schema.Type.RECORD -> CodeBlock.builder().add("encodeInt(${field.name()})").build()
-         Schema.Type.ENUM -> encodeEnum(field.name(), field.schema())
-         Schema.Type.ARRAY -> encodeList(field.name(), field.schema().elementType)
-         Schema.Type.MAP -> CodeBlock.builder().add("encodeMap(${field.name()})", field.name()).build()
-         Schema.Type.UNION -> encodeUnion(field.name(), field.schema())
-         Schema.Type.FIXED -> TODO("ff")
-         Schema.Type.STRING -> encodeString(field.name())
-         Schema.Type.BYTES -> TODO("bb")
-         Schema.Type.INT -> encodeInt(field.name())
-         Schema.Type.LONG -> encodeLong(field.name())
-         Schema.Type.FLOAT -> encodeFloat(field.name())
-         Schema.Type.DOUBLE -> encodeDouble(field.name())
-         Schema.Type.BOOLEAN -> encodeBoolean(field.name())
-         Schema.Type.NULL -> TODO("nullllls")
-      }
-   }
-
    private fun encode(schema: Schema, name: String): CodeBlock {
       return when (schema.type) {
          Schema.Type.RECORD -> CodeBlock.builder().add("encodeInt(${name})").build()
@@ -152,7 +136,7 @@ class AvroPoet {
          Schema.Type.STRING -> encodeString(name)
          Schema.Type.BYTES -> TODO("b")
          Schema.Type.INT -> encodeInt(name)
-         Schema.Type.LONG -> encodeLong(name)
+         Schema.Type.LONG -> encodeLong(name, schema)
          Schema.Type.FLOAT -> encodeFloat(name)
          Schema.Type.DOUBLE -> encodeDouble(name)
          Schema.Type.BOOLEAN -> encodeBoolean(name)
@@ -271,7 +255,7 @@ class AvroPoet {
          .returns(GenericRecord::class.asClassName())
          .addStatement("val record = GenericData.Record(schema)")
       schema.fields.forEach {
-         encoder.addStatement("record.put(%S, ${encodeField(it)})", it.name())
+         encoder.addStatement("record.put(%S, ${encode(it.schema(), it.name())})", it.name())
       }
       encoder.addStatement("return record")
          .build()
