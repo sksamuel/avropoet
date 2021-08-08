@@ -3,18 +3,34 @@ package com.sksamuel.avropoet
 import com.squareup.kotlinpoet.CodeBlock
 import org.apache.avro.LogicalTypes
 import org.apache.avro.Schema
-import org.gradle.internal.impldep.org.bouncycastle.cert.ocsp.Req
+
+fun encode(schema: Schema, name: String): CodeBlock {
+   return when (schema.type) {
+      Schema.Type.RECORD -> encodeRecord(name)
+      Schema.Type.ENUM -> encodeEnum(name)
+      Schema.Type.ARRAY -> encodeList(name, schema)
+      Schema.Type.MAP -> CodeBlock.builder().add("encodeMap(${name})", name).build()
+      Schema.Type.UNION -> encodeUnion(name, schema)
+      Schema.Type.FIXED -> TODO("b")
+      Schema.Type.STRING -> encodeString(name)
+      Schema.Type.BYTES -> encodeBytes(name)
+      Schema.Type.INT -> encodeInt(name)
+      Schema.Type.LONG -> encodeLong(name, schema)
+      Schema.Type.FLOAT -> encodeFloat(name)
+      Schema.Type.DOUBLE -> encodeDouble(name)
+      Schema.Type.BOOLEAN -> encodeBoolean(name)
+      Schema.Type.NULL -> TODO("nullllls")
+   }
+}
+
+fun encodeBytes(name: String) = CodeBlock.of(name)
+fun encodeInt(name: String): CodeBlock = CodeBlock.of(name)
+fun encodeBoolean(name: String): CodeBlock = CodeBlock.of(name)
+fun encodeFloat(name: String): CodeBlock = CodeBlock.of(name)
+fun encodeDouble(name: String): CodeBlock = CodeBlock.of(name)
 
 fun encodeString(name: String): CodeBlock {
    return CodeBlock.builder().add("Utf8($name)").build()
-}
-
-fun encodeInt(name: String): CodeBlock {
-   return CodeBlock.builder().add(name).build()
-}
-
-fun encodeBoolean(name: String): CodeBlock {
-   return CodeBlock.builder().add(name).build()
 }
 
 fun encodeLong(name: String, schema: Schema): CodeBlock {
@@ -22,14 +38,6 @@ fun encodeLong(name: String, schema: Schema): CodeBlock {
       is LogicalTypes.TimestampMillis -> CodeBlock.builder().add("$name.time").build()
       else -> CodeBlock.builder().add(name).build()
    }
-}
-
-fun encodeDouble(name: String): CodeBlock {
-   return CodeBlock.builder().add(name).build()
-}
-
-fun encodeFloat(name: String): CodeBlock {
-   return CodeBlock.builder().add(name).build()
 }
 
 fun encodeList(name: String, schema: Schema): CodeBlock {
@@ -46,25 +54,6 @@ fun encodeList(name: String, schema: Schema): CodeBlock {
 
 fun encodeEnum(name: String): CodeBlock {
    return CodeBlock.builder().add("GenericData.EnumSymbol(schema, $name.name)").build()
-}
-
-fun encode(schema: Schema, name: String): CodeBlock {
-   return when (schema.type) {
-      Schema.Type.RECORD -> encodeRecord(name)
-      Schema.Type.ENUM -> encodeEnum(name)
-      Schema.Type.ARRAY -> encodeList(name, schema)
-      Schema.Type.MAP -> CodeBlock.builder().add("encodeMap(${name})", name).build()
-      Schema.Type.UNION -> encodeUnion(name, schema)
-      Schema.Type.FIXED -> TODO("b")
-      Schema.Type.STRING -> encodeString(name)
-      Schema.Type.BYTES -> TODO("b")
-      Schema.Type.INT -> encodeInt(name)
-      Schema.Type.LONG -> encodeLong(name, schema)
-      Schema.Type.FLOAT -> encodeFloat(name)
-      Schema.Type.DOUBLE -> encodeDouble(name)
-      Schema.Type.BOOLEAN -> encodeBoolean(name)
-      Schema.Type.NULL -> TODO("nullllls")
-   }
 }
 
 fun encodeRecord(name: String): CodeBlock {

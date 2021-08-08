@@ -14,14 +14,19 @@ fun decode(schema: Schema, name: String): CodeBlock {
       Schema.Type.FIXED -> TODO("f")
       Schema.Type.STRING -> decodeString(name)
       Schema.Type.BYTES -> TODO()
-      Schema.Type.INT -> CodeBlock.builder().addStatement("decodeInt(%S, record)", name).build()
+      Schema.Type.INT -> decodeInt(name)
       Schema.Type.LONG -> decodeLong(name, schema)
-      Schema.Type.FLOAT -> CodeBlock.builder().addStatement("decodeFloat(%S, record)", name).build()
-      Schema.Type.DOUBLE -> CodeBlock.builder().addStatement("decodeDouble(%S, record)", name).build()
-      Schema.Type.BOOLEAN -> CodeBlock.builder().addStatement("decodeBoolean(%S, record)", name).build()
+      Schema.Type.FLOAT -> decodeFloat(name)
+      Schema.Type.DOUBLE -> decodeDouble(name)
+      Schema.Type.BOOLEAN -> decodeBoolean(name)
       Schema.Type.NULL -> TODO("n")
    }
 }
+
+fun decodeBoolean(name: String): CodeBlock = CodeBlock.of(name)
+fun decodeFloat(name: String): CodeBlock = CodeBlock.of(name)
+fun decodeDouble(name: String): CodeBlock = CodeBlock.of(name)
+fun decodeInt(name: String): CodeBlock = CodeBlock.of(name)
 
 fun decodeRecord(name: String, schema: Schema): CodeBlock {
    return CodeBlock.builder().add("${schema.name}.decode($name as GenericRecord)").build()
