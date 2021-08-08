@@ -16,7 +16,7 @@ class GradlePlugin : Plugin<Project> {
             .filter { it.name.endsWith(".json") || it.name.endsWith(".avro") || it.name.endsWith(".avdl") }
             .forEach {
                println("Processing $it")
-               AvroPoet().generate(it, outputBase)
+               AvroPoet(it, outputBase).generate()
             }
       }
       task.description = "Generate kotlin data classes from avro definitions"

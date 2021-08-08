@@ -57,7 +57,7 @@ fun encodeEnum(name: String): CodeBlock {
 }
 
 fun encodeRecord(name: String): CodeBlock {
-   return CodeBlock.builder().add("$name.encode(schema.elementType)").build()
+   return CodeBlock.builder().add("$name.encode()").build()
 }
 
 fun encodeUnion(name: String, schema: Schema): CodeBlock {

@@ -21,12 +21,12 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Timestamp
 
-class AvroPoet {
+class AvroPoet(private val input: Path, private val outputBase: Path) {
 
    private val types = mutableListOf<TypeSpec>()
    private val encoders = mutableListOf<FunSpec>()
 
-   fun generate(input: Path, outputBase: Path) {
+   fun generate() {
 
       val schema = Schema.Parser().parse(input.toFile())
       record(schema)
@@ -43,11 +43,9 @@ class AvroPoet {
          .resolve(schema.name + ".kt")
 
       outputPath.parent.toFile().mkdirs()
-
       println("Writing to $outputBase")
 
       val contents = spec.build().toString()
-      println("File contents $contents")
       Files.writeString(outputPath, contents)
    }
 
@@ -134,8 +132,15 @@ class AvroPoet {
 
       decoder.addCode(decoderBody.build())
 
+      val schemaFn = PropertySpec.builder("schema", Schema::class)
+         .initializer(
+            CodeBlock.builder().add("Schema.Parser().parse(javaClass.getResourceAsStream(%S))", "/" + input.fileName)
+               .build()
+         )
+
       val companion = TypeSpec.companionObjectBuilder()
          .addFunction(decoder.build())
+         .addProperty(schemaFn.build())
          .build()
 
       builder
@@ -146,9 +151,10 @@ class AvroPoet {
 
       val encoder = FunSpec.builder("encode")
          .receiver(ref)
-         .addParameter("schema", Schema::class.asClassName())
          .returns(GenericRecord::class.asClassName())
+         .addStatement("val schema = ${schema.name}.schema")
          .addStatement("val record = GenericData.Record(schema)")
+
       schema.fields.forEach {
          encoder.addStatement("record.put(%S, ${encode(it.schema(), it.name())})", it.name())
       }
