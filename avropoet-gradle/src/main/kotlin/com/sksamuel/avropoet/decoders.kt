@@ -13,7 +13,7 @@ fun decode(schema: Schema, name: String): CodeBlock {
       Schema.Type.UNION -> decodeUnion(name, schema)
       Schema.Type.FIXED -> TODO("f")
       Schema.Type.STRING -> decodeString(name)
-      Schema.Type.BYTES -> TODO()
+      Schema.Type.BYTES -> decodeBytes(name)
       Schema.Type.INT -> decodeInt(name)
       Schema.Type.LONG -> decodeLong(name, schema)
       Schema.Type.FLOAT -> decodeFloat(name)
@@ -23,10 +23,21 @@ fun decode(schema: Schema, name: String): CodeBlock {
    }
 }
 
-fun decodeBoolean(name: String): CodeBlock = CodeBlock.of(name)
-fun decodeFloat(name: String): CodeBlock = CodeBlock.of(name)
-fun decodeDouble(name: String): CodeBlock = CodeBlock.of(name)
-fun decodeInt(name: String): CodeBlock = CodeBlock.of(name)
+fun decodeBoolean(name: String): CodeBlock = CodeBlock.builder().add("$name as Boolean").build()
+fun decodeFloat(name: String): CodeBlock = CodeBlock.builder().add("$name as Float").build()
+fun decodeDouble(name: String): CodeBlock = CodeBlock.builder().add("$name as Double").build()
+fun decodeInt(name: String): CodeBlock = CodeBlock.builder().add("$name as Int").build()
+
+fun decodeBytes(name: String): CodeBlock {
+   return CodeBlock.builder().addStatement("when ($name) {")
+      .indent()
+      .addStatement("is ByteArray -> $name")
+      .addStatement("is ByteBuffer -> $name.array()")
+      .addStatement("else -> error(\"Unknown bytes type $$name\")")
+      .unindent()
+      .add("}")
+      .build()
+}
 
 fun decodeRecord(name: String, schema: Schema): CodeBlock {
    return CodeBlock.builder().add("${schema.name}.decode($name as GenericRecord)").build()
