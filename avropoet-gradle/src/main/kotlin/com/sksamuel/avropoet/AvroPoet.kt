@@ -26,14 +26,6 @@ class AvroPoet {
    private val types = mutableListOf<TypeSpec>()
    private val encoders = mutableListOf<FunSpec>()
 
-   private fun encodePrimitiveFn(type: KClass<*>) =
-      FunSpec.builder("encode${type.simpleName}")
-         .addModifiers(KModifier.PRIVATE)
-         .addParameter("value", type)
-         .returns(type)
-         .addCode("return value")
-         .build()
-
    private val encodeList =
       FunSpec.builder("encodeList")
          .addModifiers(KModifier.PRIVATE)
@@ -96,12 +88,6 @@ class AvroPoet {
       spec.addImport(GenericData::class.java.`package`.name, "GenericData")
       spec.addImport(Utf8::class.java.`package`.name, "Utf8")
 
-      spec.addFunction(encodePrimitiveFn(String::class))
-      spec.addFunction(encodePrimitiveFn(Long::class))
-      spec.addFunction(encodePrimitiveFn(Double::class))
-      spec.addFunction(encodePrimitiveFn(Int::class))
-      spec.addFunction(encodePrimitiveFn(Float::class))
-      spec.addFunction(encodePrimitiveFn(Boolean::class))
       spec.addFunction(encodeList)
       spec.addFunction(encodeMap)
 
@@ -188,6 +174,14 @@ class AvroPoet {
       return CodeBlock.builder().add(name).build()
    }
 
+   private fun encodeDouble(name: String): CodeBlock {
+      return CodeBlock.builder().add(name).build()
+   }
+
+   private fun encodeFloat(name: String): CodeBlock {
+      return CodeBlock.builder().add(name).build()
+   }
+
    private fun encodeList(name: String, schema: Schema): CodeBlock {
       return CodeBlock.builder().add("GenericData.Array(schema.getField(%S).schema().elementType, $name)", name).build()
    }
@@ -204,8 +198,8 @@ class AvroPoet {
          Schema.Type.BYTES -> TODO()
          Schema.Type.INT -> encodeInt(field.name())
          Schema.Type.LONG -> encodeLong(field.name())
-         Schema.Type.FLOAT -> CodeBlock.builder().add("encodeFloat(${field.name()})", field.name()).build()
-         Schema.Type.DOUBLE -> CodeBlock.builder().add("encodeDouble(${field.name()})", field.name()).build()
+         Schema.Type.FLOAT -> encodeFloat(field.name())
+         Schema.Type.DOUBLE -> encodeDouble(field.name())
          Schema.Type.BOOLEAN -> encodeBoolean(field.name())
          Schema.Type.NULL -> TODO()
       }
