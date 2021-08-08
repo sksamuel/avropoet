@@ -10,7 +10,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import org.apache.avro.LogicalTypes
@@ -18,95 +17,24 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Timestamp
-import kotlin.reflect.KClass
 
 class AvroPoet {
 
    private val types = mutableListOf<TypeSpec>()
    private val encoders = mutableListOf<FunSpec>()
 
-   private val encodeList =
-      FunSpec.builder("encodeList")
-         .addModifiers(KModifier.PRIVATE)
-         .addTypeVariable(TypeVariableName("T", Any::class))
-         .addParameter("value", List::class.asClassName().parameterizedBy(TypeVariableName("T")))
-         .addParameter("schema", Schema::class.asClassName())
-         .returns(GenericData.Array::class.asTypeName().parameterizedBy(TypeVariableName("T")))
-         .addCode("return GenericData.Array(schema, value)")
-         .build()
-
-   private val encodeMap =
-      FunSpec.builder("encodeMap")
-         .addModifiers(KModifier.PRIVATE)
-         .addTypeVariable(TypeVariableName("V", Any::class))
-         .addParameter(
-            "value",
-            Map::class.asClassName().parameterizedBy(listOf(String::class.asTypeName(), TypeVariableName("V")))
-         )
-         .returns(Map::class.asClassName().parameterizedBy(String::class.asTypeName(), TypeVariableName("V")))
-         .addCode("return value as Map<String, V>")
-         .build()
-
-   private val decodeList =
-      FunSpec.builder("decodeList")
-         .addModifiers(KModifier.PRIVATE)
-         .addTypeVariable(TypeVariableName("T", Any::class))
-         .addParameter("name", String::class)
-         .addParameter("record", GenericRecord::class)
-         .returns(List::class.asClassName().parameterizedBy(TypeVariableName("T")))
-         .addCode("return record.get(name) as List<T>")
-         .build()
-
-   private val decodeMap =
-      FunSpec.builder("decodeMap")
-         .addModifiers(KModifier.PRIVATE)
-         .addTypeVariable(TypeVariableName("V", Any::class))
-         .addParameter("name", String::class)
-         .addParameter("record", GenericRecord::class)
-         .returns(Map::class.asClassName().parameterizedBy(String::class.asTypeName(), TypeVariableName("V")))
-         .addCode("return record.get(name) as Map<String, V>")
-         .build()
-
-   private fun decodePrimitiveFn(type: KClass<*>) =
-      FunSpec.builder("decode${type.simpleName}")
-         .addModifiers(KModifier.PRIVATE)
-         .addParameter("name", String::class)
-         .addParameter("record", GenericRecord::class)
-         .returns(type)
-         .addCode("return record.get(name) as ${type.simpleName}")
-         .build()
-
-
    fun generate(input: Path, outputBase: Path) {
 
-      val schema = try {
-         Schema.Parser().parse(input.toFile())
-      } catch (e: IOException) {
-         throw Exception("Error parsing avro file $input", e)
-      }
+      val schema = Schema.Parser().parse(input.toFile())
       record(schema)
 
       val spec = FileSpec.builder(schema.namespace, schema.name)
 
       spec.addImport(GenericData::class.java.`package`.name, "GenericData")
       spec.addImport(Utf8::class.java.`package`.name, "Utf8")
-
-      spec.addFunction(encodeList)
-      spec.addFunction(encodeMap)
-
-      spec.addFunction(decodePrimitiveFn(String::class))
-      spec.addFunction(decodePrimitiveFn(Long::class))
-      spec.addFunction(decodePrimitiveFn(Double::class))
-      spec.addFunction(decodePrimitiveFn(Int::class))
-      spec.addFunction(decodePrimitiveFn(Float::class))
-      spec.addFunction(decodePrimitiveFn(Boolean::class))
-
-      spec.addFunction(decodeList)
-      spec.addFunction(decodeMap)
       types.distinctBy { it.name }.forEach { spec.addType(it) }
       encoders.forEach { spec.addFunction(it) }
 
