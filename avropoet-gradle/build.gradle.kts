@@ -6,7 +6,7 @@ plugins {
    id("com.gradle.plugin-publish").version(Libs.GradlePluginPublishVersion)
 }
 
-version = Ci.publishVersion
+version = Ci.gradleVersion
 
 dependencies {
    implementation("org.apache.avro:avro:1.10.2")
