@@ -25,8 +25,8 @@ tasks {
          create("avropoetPlugin") {
             id = "com.sksamuel.avropoet"
             implementationClass = "com.sksamuel.avropoet.GradlePlugin"
-            displayName = "Gradle Kotest Runner"
-            description = "Adds support to Gradle for running Kotest tests"
+            displayName = "Avropoet Gradle Plugin"
+            description = "Generates sources from avro definitions"
          }
       }
    }

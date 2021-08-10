@@ -18,7 +18,6 @@ plugins {
    id("java-library")
    id("maven-publish")
    id("signing")
-   id("io.kotest") version "0.3.8"
    kotlin("jvm").version(Libs.kotlinVersion)
 }
 
