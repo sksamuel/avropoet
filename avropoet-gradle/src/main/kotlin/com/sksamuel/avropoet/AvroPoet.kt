@@ -21,7 +21,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Timestamp
 
-class AvroPoet(private val outputBase: Path) {
+class AvroPoet(
+   private val inputBase: Path,
+   private val outputBase: Path
+) {
 
    private val types = mutableListOf<TypeSpec>()
    private val encoders = mutableListOf<FunSpec>()
@@ -138,9 +141,11 @@ class AvroPoet(private val outputBase: Path) {
 
       decoder.addCode(decoderBody.build())
 
+      val schemaPath = input.toString().drop(inputBase.toString().length)
+
       val schemaFn = PropertySpec.builder("schema", Schema::class)
          .initializer(
-            CodeBlock.builder().add("Schema.Parser().parse(javaClass.getResourceAsStream(%S))", "/" + input.fileName)
+            CodeBlock.builder().add("Schema.Parser().parse(javaClass.getResourceAsStream(%S))", schemaPath)
                .build()
          )
 

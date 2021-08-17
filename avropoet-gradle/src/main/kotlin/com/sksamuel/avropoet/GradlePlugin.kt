@@ -20,11 +20,11 @@ class GradlePlugin : Plugin<Project> {
    override fun apply(project: Project) {
       val task = project.task("generateSources") {
 
+         val inputBase = project.projectDir.toPath().resolve("src/main/avro")
          val outputBase = project.projectDir.toPath().resolve("src/main/kotlin")
-         val poet = AvroPoet(outputBase)
+         val poet = AvroPoet(inputBase, outputBase)
 
-         val src = project.projectDir.toPath().resolve("src/main/avro")
-         entries(src)
+         entries(inputBase)
             .sortedBy { if (it.toString().contains("/shared/")) -1 else 1 }
             .filter { it.isRegularFile() }
             .filter { it.name.endsWith(".json") || it.name.endsWith(".avro") || it.name.endsWith(".avdl") }
