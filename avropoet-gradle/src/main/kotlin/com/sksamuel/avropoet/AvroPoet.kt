@@ -21,20 +21,21 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Timestamp
 
-class AvroPoet(private val input: Path, private val outputBase: Path) {
+class AvroPoet(private val outputBase: Path) {
 
    private val types = mutableListOf<TypeSpec>()
    private val encoders = mutableListOf<FunSpec>()
+   private val parser = Schema.Parser()
 
-   fun generate() {
+   fun generate(input: Path) {
 
-      val schema = Schema.Parser().parse(input.toFile())
-      record(schema)
+      val schema = parser.parse(input.toFile())
+      record(schema, input)
 
       val spec = FileSpec.builder(schema.namespace, schema.name)
-
       spec.addImport(GenericData::class.java.`package`.name, "GenericData")
       spec.addImport(Utf8::class.java.`package`.name, "Utf8")
+
       types.distinctBy { it.name }.forEach { spec.addType(it) }
       encoders.forEach { spec.addFunction(it) }
 
@@ -46,12 +47,17 @@ class AvroPoet(private val input: Path, private val outputBase: Path) {
       println("Writing to $outputBase")
 
       val contents = spec.build().toString()
-      Files.writeString(outputPath, contents)
+      Files.write(outputPath, contents.encodeToByteArray())
+   }
+
+   fun reset() {
+      types.clear()
+      encoders.clear()
    }
 
    private fun ref(schema: Schema): TypeName {
       return when (schema.type) {
-         Schema.Type.RECORD -> record(schema)
+         Schema.Type.RECORD -> ClassName(schema.namespace, schema.name)
          Schema.Type.ENUM -> enum(schema)
          Schema.Type.ARRAY -> ClassName("kotlin.collections", "List").parameterizedBy(ref(schema.elementType))
          Schema.Type.MAP -> ClassName("kotlin.collections", "Map").parameterizedBy(
@@ -96,7 +102,7 @@ class AvroPoet(private val input: Path, private val outputBase: Path) {
       return ref(schema.types[1]).copy(nullable = true)
    }
 
-   private fun record(schema: Schema): ClassName {
+   private fun record(schema: Schema, input: Path): ClassName {
       require(schema.type == Schema.Type.RECORD) { "$schema must be record" }
 
       val builder = TypeSpec.classBuilder(schema.name)
