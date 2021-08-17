@@ -22,17 +22,22 @@ class GradlePlugin : Plugin<Project> {
 
          val inputBase = project.projectDir.toPath().resolve("src/main/avro")
          val outputBase = project.projectDir.toPath().resolve("src/main/kotlin")
-         val poet = AvroPoet(inputBase, outputBase)
 
-         entries(inputBase)
-            .sortedBy { if (it.toString().contains("/shared/")) -1 else 1 }
+         val entries = entries(inputBase)
             .filter { it.isRegularFile() }
             .filter { it.name.endsWith(".json") || it.name.endsWith(".avro") || it.name.endsWith(".avdl") }
-            .forEach {
-               println("Processing $it")
-               poet.reset()
-               poet.generate(it)
-            }
+
+         val (shared, records) = entries.partition { it.toString().contains("/shared/") }
+
+         shared.forEach {
+            println("Processing $it")
+            AvroPoet(inputBase, outputBase, emptyList()).generate(it)
+         }
+
+         records.forEach {
+            println("Processing $it")
+            AvroPoet(inputBase, outputBase, shared).generate(it)
+         }
       }
       task.description = "Generate kotlin data classes from avro definitions"
       task.group = "avropoet"

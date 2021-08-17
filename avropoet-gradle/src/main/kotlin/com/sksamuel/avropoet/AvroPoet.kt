@@ -23,7 +23,8 @@ import java.sql.Timestamp
 
 class AvroPoet(
    private val inputBase: Path,
-   private val outputBase: Path
+   private val outputBase: Path,
+   private val shares: List<Path>,
 ) {
 
    private val types = mutableListOf<TypeSpec>()
@@ -32,6 +33,7 @@ class AvroPoet(
 
    fun generate(input: Path) {
 
+      shares.forEach { parser.parse(it.toFile()) }
       val schema = parser.parse(input.toFile())
       record(schema, input)
 
@@ -51,11 +53,6 @@ class AvroPoet(
 
       val contents = spec.build().toString()
       Files.write(outputPath, contents.encodeToByteArray())
-   }
-
-   fun reset() {
-      types.clear()
-      encoders.clear()
    }
 
    private fun ref(schema: Schema): TypeName {
@@ -141,13 +138,24 @@ class AvroPoet(
 
       decoder.addCode(decoderBody.build())
 
-      val schemaPath = input.toString().drop(inputBase.toString().length)
+      val schemaInit = CodeBlock.builder()
+         .addStatement("Schema.Parser().let { ")
+         .indent()
 
-      val schemaFn = PropertySpec.builder("schema", Schema::class)
-         .initializer(
-            CodeBlock.builder().add("Schema.Parser().parse(javaClass.getResourceAsStream(%S))", schemaPath)
-               .build()
+      shares.forEach {
+         schemaInit.addStatement(
+            "it.parse(javaClass.getResourceAsStream(%S))",
+            it.toString().removePrefix(inputBase.toString())
          )
+      }
+
+      schemaInit.addStatement(
+         "it.parse(javaClass.getResourceAsStream(%S))",
+         input.toString().removePrefix(inputBase.toString())
+      ).unindent()
+         .addStatement("}")
+
+      val schemaFn = PropertySpec.builder("schema", Schema::class).initializer(schemaInit.build())
 
       val companion = TypeSpec.companionObjectBuilder()
          .addFunction(decoder.build())
