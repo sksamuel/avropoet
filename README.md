@@ -1,7 +1,7 @@
 # avropoet
 
 ![master](https://github.com/sksamuel/avropoet/workflows/main/badge.svg)
-[<img src="https://img.shields.io/maven-central/v/com.sksamuel.avropoet/avropoet-gradle.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Choplite)
+[<img src="https://img.shields.io/gradle-plugin-portal/v/com.sksamuel.avropoet?label=Latest%20Release"/>](http://search.maven.org/#search%7Cga%7C1%7Choplite)
 
 This project generates Kotlin data classes from Avro definitions, along with encoders and decoders for moving
 between `GenericRecord`s and the data classes.
