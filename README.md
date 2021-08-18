@@ -138,6 +138,10 @@ Avropoet currently supports the following logical types:
 
 ## Changelog
 
+### 1.0.5
+
+* Sort files alphabetically (lowercase) for consistent ordering
+
 ### 1.0.4
 
 * Release for JDK8

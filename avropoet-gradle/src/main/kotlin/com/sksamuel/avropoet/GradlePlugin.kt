@@ -47,6 +47,7 @@ class GradlePlugin : Plugin<Project> {
          Files.write(outputPath, interfaces.toString().encodeToByteArray())
 
          val entries = entries(inputBase)
+            .sortedBy { it.toString().toLowerCase() }
             .filter { it.isRegularFile() }
             .filter { it.name.endsWith(".json") || it.name.endsWith(".avro") || it.name.endsWith(".avdl") }
 
