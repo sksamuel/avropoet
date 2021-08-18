@@ -105,6 +105,7 @@ class AvroPoet(
 
       val type = TypeSpec.classBuilder(schema.name)
          .addModifiers(KModifier.DATA)
+         .addSuperinterface(ClassName("com.sksamuel.avropoet", "HasEncoder"))
 
       schema.getProp("kotlin.interfaces")?.let {
          it.split(',').forEach { fqn ->
@@ -181,6 +182,7 @@ class AvroPoet(
 
       val encoder = FunSpec.builder("encode")
          .returns(GenericRecord::class.asClassName())
+         .addModifiers(KModifier.OVERRIDE)
          .addStatement("val schema = ${schema.name}.schema")
          .addStatement("val record = GenericData.Record(schema)")
 

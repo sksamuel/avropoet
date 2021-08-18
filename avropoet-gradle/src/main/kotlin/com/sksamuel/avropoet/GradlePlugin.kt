@@ -1,7 +1,13 @@
 package com.sksamuel.avropoet
 
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.TypeSpec
+import org.apache.avro.generic.GenericRecord
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.isRegularFile
@@ -22,6 +28,23 @@ class GradlePlugin : Plugin<Project> {
 
          val inputBase = project.projectDir.toPath().resolve("src/main/avro")
          val outputBase = project.projectDir.toPath().resolve("src/main/kotlin")
+
+         val interfaces = FileSpec.builder("com.sksamuel.avropoet", "interfaces.kt")
+            .addType(
+               TypeSpec.interfaceBuilder("HasEncoder").addFunction(
+                  FunSpec.builder("encode").returns(GenericRecord::class).addModifiers(KModifier.ABSTRACT).build()
+               ).build()
+            )
+            .build()
+
+         val outputPath = "com.sksamuel.avropoet".split('.')
+            .fold(outputBase) { acc, op -> acc.resolve(op) }
+            .resolve("interfaces.kt")
+
+         outputPath.parent.toFile().mkdirs()
+         println("Writing to $outputBase")
+
+         Files.write(outputPath, interfaces.toString().encodeToByteArray())
 
          val entries = entries(inputBase)
             .filter { it.isRegularFile() }
