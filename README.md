@@ -88,11 +88,14 @@ Eg, in the previous example, we could do `UserProfile.schema`
 
 ## Encoders
 
-An extension method is added for each record generated.
+A member method is added for each record generated.
 
-This extension method is called `encode()` and returns a `GenericRecord` populated from the values of the data class.
+This method is called `encode()` and returns a `GenericRecord` populated from the values of the data class.
 
 Eg, `val record = UserProfile.encode()`
+
+All types implement an interface `HasEncoder` which has this method defined. This allows easy pattern matching to
+discover if a type is capable of being encoded as an avro generic record.
 
 ## Decoders
 
