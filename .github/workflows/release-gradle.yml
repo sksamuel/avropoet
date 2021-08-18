@@ -19,6 +19,11 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch }}
 
+      - name: Setup JDK
+        uses: actions/setup-java@v1
+        with:
+           java-version: '8'
+
       - name: deploy to gradle
         run: ./gradlew publishPlugins -Dgradle.publish.key=${{ secrets.GRADLE_PUBLISH_KEY }} -Dgradle.publish.secret=${{ secrets.GRADLE_PUBLISH_SECRET }}
 
