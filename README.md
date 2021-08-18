@@ -89,9 +89,17 @@ Eg, in the previous example, we could do `UserProfile.schema`
 ## Encoders
 
 An extension method is added for each record generated.
-This extension method is called `encode()` and returns a `GenericRecord` populates from the values of the data class.
+
+This extension method is called `encode()` and returns a `GenericRecord` populated from the values of the data class.
 
 Eg, `val record = UserProfile.encode()`
+
+## Decoders
+
+Each generated record has a companion object function called decode, which accepts a `GenericRecord` and returns a
+decoded type. This is the inverse of the encoding function.
+
+Eg, `val profile = UserProfile.decode(record)`
 
 ## Type names and packages
 

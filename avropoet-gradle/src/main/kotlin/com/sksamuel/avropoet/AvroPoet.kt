@@ -28,7 +28,6 @@ class AvroPoet(
 ) {
 
    private val types = mutableListOf<TypeSpec>()
-   private val encoders = mutableListOf<FunSpec>()
    private val parser = Schema.Parser()
 
    fun generate(input: Path) {
@@ -42,7 +41,6 @@ class AvroPoet(
       spec.addImport(Utf8::class.java.`package`.name, "Utf8")
 
       types.distinctBy { it.name }.forEach { spec.addType(it) }
-      encoders.forEach { spec.addFunction(it) }
 
       val outputPath = schema.namespace.split('.')
          .fold(outputBase) { acc, op -> acc.resolve(op) }
@@ -105,14 +103,33 @@ class AvroPoet(
    private fun record(schema: Schema, input: Path): ClassName {
       require(schema.type == Schema.Type.RECORD) { "$schema must be record" }
 
-      val builder = TypeSpec.classBuilder(schema.name)
+      val type = TypeSpec.classBuilder(schema.name)
          .addModifiers(KModifier.DATA)
+
+      schema.getProp("kotlin.interfaces")?.let {
+         it.split(',').forEach { fqn ->
+            type.addSuperinterface(ClassName.bestGuess(fqn))
+         }
+      }
 
       val constructor = FunSpec.constructorBuilder()
       schema.fields.map { field ->
+
+         val override = false// field.getProp("kotlin.override") == "true"
+
          val ref = ref(field.schema())
-         constructor.addParameter(ParameterSpec.builder(field.name(), ref).build())
-         builder.addProperty(PropertySpec.builder(field.name(), ref).initializer(field.name()).build())
+
+         val param = ParameterSpec.builder(field.name(), ref)
+         if (override)
+            param.addModifiers(KModifier.OVERRIDE)
+
+         constructor.addParameter(param.build())
+
+         val prop = PropertySpec.builder(field.name(), ref).initializer(field.name())
+         if (override)
+            prop.addModifiers(KModifier.OVERRIDE)
+
+         type.addProperty(prop.build())
       }
 
       val ref = ClassName(schema.namespace, schema.name)
@@ -162,14 +179,7 @@ class AvroPoet(
          .addProperty(schemaFn.build())
          .build()
 
-      builder
-         .primaryConstructor(constructor.build())
-         .addType(companion)
-         .build()
-         .apply { types.add(this) }
-
       val encoder = FunSpec.builder("encode")
-         .receiver(ref)
          .returns(GenericRecord::class.asClassName())
          .addStatement("val schema = ${schema.name}.schema")
          .addStatement("val record = GenericData.Record(schema)")
@@ -177,9 +187,15 @@ class AvroPoet(
       schema.fields.forEach {
          encoder.addStatement("record.put(%S, ${encode(it.schema(), it.name())})", it.name())
       }
+
       encoder.addStatement("return record")
+
+      type
+         .primaryConstructor(constructor.build())
+         .addType(companion)
+         .addFunction(encoder.build())
          .build()
-         .apply { encoders.add(this) }
+         .apply { types.add(this) }
 
       return ref
    }
