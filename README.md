@@ -136,6 +136,17 @@ Avropoet currently supports the following logical types:
 
 * Timestamp-millis
 
+## Changelog
+
+### 1.0.4
+
+* Release for JDK8
+
+### 1.0.3
+
+* First public release
+* Allow `kotlin.interfaces` property on records to declare an interface for the data class
+
 ## License
 
 ```
