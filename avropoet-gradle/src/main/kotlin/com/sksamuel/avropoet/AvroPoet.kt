@@ -162,13 +162,13 @@ class AvroPoet(
 
       shares.forEach {
          schemaInit.addStatement(
-            "it.parse(javaClass.getResourceAsStream(%S))",
+            "it.parse(this::class.java.getResourceAsStream(%S))",
             it.toString().removePrefix(inputBase.toString())
          )
       }
 
       schemaInit.addStatement(
-         "it.parse(javaClass.getResourceAsStream(%S))",
+         "it.parse(this::class.java.getResourceAsStream(%S))",
          input.toString().removePrefix(inputBase.toString())
       ).unindent()
          .addStatement("}")
