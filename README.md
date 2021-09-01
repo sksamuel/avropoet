@@ -138,6 +138,10 @@ Avropoet currently supports the following logical types:
 
 ## Changelog
 
+### 1.0.6
+
+* Replaced useage of javaClass with this::class.java to avoid warnings in intellij.
+
 ### 1.0.5
 
 * Sort files alphabetically (lowercase) for consistent ordering
