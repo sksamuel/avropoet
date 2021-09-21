@@ -39,7 +39,7 @@ class GradlePlugin : Plugin<Project> {
             )
             .addType(
                TypeSpec.interfaceBuilder("HasSchema").addProperty(
-                  PropertySpec.builder("schema", Schema::class).build()
+                  PropertySpec.builder("schema", Schema::class, KModifier.OVERRIDE).build()
                ).build()
             )
             .build()
