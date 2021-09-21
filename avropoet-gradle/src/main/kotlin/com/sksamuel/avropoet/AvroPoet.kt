@@ -173,7 +173,7 @@ class AvroPoet(
       ).unindent()
          .addStatement("}")
 
-      val schemaFn = PropertySpec.builder("schema", Schema::class).initializer(schemaInit.build())
+      val schemaFn = PropertySpec.builder("schema", Schema::class, KModifier.OVERRIDE).initializer(schemaInit.build())
 
       val companion = TypeSpec.companionObjectBuilder()
          .addFunction(decoder.build())
