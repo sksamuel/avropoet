@@ -3,7 +3,9 @@ package com.sksamuel.avropoet
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -33,6 +35,11 @@ class GradlePlugin : Plugin<Project> {
             .addType(
                TypeSpec.interfaceBuilder("HasEncoder").addFunction(
                   FunSpec.builder("encode").returns(GenericRecord::class).addModifiers(KModifier.ABSTRACT).build()
+               ).build()
+            )
+            .addType(
+               TypeSpec.interfaceBuilder("HasSchema").addProperty(
+                  PropertySpec.builder("schema", Schema::class).build()
                ).build()
             )
             .build()

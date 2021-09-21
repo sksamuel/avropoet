@@ -178,6 +178,7 @@ class AvroPoet(
       val companion = TypeSpec.companionObjectBuilder()
          .addFunction(decoder.build())
          .addProperty(schemaFn.build())
+         .addSuperinterface(ClassName("com.sksamuel.avropoet", "HasSchema"))
          .build()
 
       val encoder = FunSpec.builder("encode")
