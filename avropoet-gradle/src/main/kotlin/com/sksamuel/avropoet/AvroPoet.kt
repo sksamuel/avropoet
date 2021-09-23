@@ -116,7 +116,7 @@ class AvroPoet(
       val constructor = FunSpec.constructorBuilder()
       schema.fields.map { field ->
 
-         val override = false// field.getProp("kotlin.override") == "true"
+         val override = field.getProp("kotlin.override") == "true"
 
          val ref = ref(field.schema())
 
