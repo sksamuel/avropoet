@@ -138,6 +138,14 @@ Avropoet currently supports the following logical types:
 
 ## Changelog
 
+### 1.0.8
+
+* Added `kotlin.override` supported property to fields.
+
+### 1.0.7
+
+* Added `HasSchema` interface and applied to the companion objects of generated types.
+
 ### 1.0.6
 
 * Replaced useage of javaClass with this::class.java to avoid warnings in intellij.
