@@ -48,7 +48,7 @@ fun decodeRecord(name: String, schema: Schema): CodeBlock {
 fun decodeMap(name: String, schema: Schema): CodeBlock {
    return CodeBlock.builder().addStatement("when ($name) {")
       .indent()
-      .addStatement("is Map<*,*> -> $name.map { it.key.toString() to ${decode(schema.valueType, "it.value")} }.toMap()")
+      .addStatement("is Map<*,*> -> $name.map { (key, value) -> key.toString() to ${decode(schema.valueType, "value")} }.toMap()")
       .addStatement("else -> error(\"Unknown type for map schema $$name\")")
       .unindent()
       .add("}")
