@@ -1,3 +1,5 @@
+@file:Suppress("WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
+
 package com.sksamuel.avropoet
 
 import com.squareup.kotlinpoet.CodeBlock
@@ -9,7 +11,7 @@ fun encode(schema: Schema, name: String): CodeBlock {
       Schema.Type.RECORD -> encodeRecord(name)
       Schema.Type.ENUM -> encodeEnum(name)
       Schema.Type.ARRAY -> encodeList(name, schema)
-      Schema.Type.MAP -> CodeBlock.builder().add("encodeMap(${name})", name).build()
+      Schema.Type.MAP -> encodeMap(name, schema)
       Schema.Type.UNION -> encodeUnion(name, schema)
       Schema.Type.FIXED -> TODO("b")
       Schema.Type.STRING -> encodeString(name)
@@ -33,6 +35,11 @@ fun encodeString(name: String): CodeBlock {
    return CodeBlock.builder().add("Utf8($name)").build()
 }
 
+fun encodeMap(name: String, schema: Schema): CodeBlock {
+   require(schema.type == Schema.Type.MAP) { "encodeMap requires Schema.Type.MAP, but was $schema" }
+   return CodeBlock.builder().addStatement("$name.mapValues { ${encode(schema.valueType, "it.value")} }").build()
+}
+
 fun encodeLong(name: String, schema: Schema): CodeBlock {
    return when (schema.logicalType) {
       is LogicalTypes.TimestampMillis -> CodeBlock.builder().add("$name.time").build()
@@ -41,7 +48,7 @@ fun encodeLong(name: String, schema: Schema): CodeBlock {
 }
 
 fun encodeList(name: String, schema: Schema): CodeBlock {
-   require(schema.type == Schema.Type.ARRAY) { "encodeList requires array schema, but was $schema" }
+   require(schema.type == Schema.Type.ARRAY) { "encodeList requires Schema.Type.ARRAY, but was $schema" }
    return CodeBlock.builder()
       .addStatement("GenericData.Array(")
       .indent()
