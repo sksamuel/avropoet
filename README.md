@@ -138,6 +138,14 @@ Avropoet currently supports the following logical types:
 
 ## Changelog
 
+### 1.0.10
+
+* Added decode support for maps
+
+### 1.0.9
+
+* Added encode support for maps
+
 ### 1.0.8
 
 * Added `kotlin.override` supported property to fields.
