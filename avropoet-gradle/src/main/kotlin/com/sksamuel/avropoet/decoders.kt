@@ -1,3 +1,5 @@
+@file:Suppress("WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
+
 package com.sksamuel.avropoet
 
 import com.squareup.kotlinpoet.CodeBlock
@@ -9,7 +11,7 @@ fun decode(schema: Schema, name: String): CodeBlock {
       Schema.Type.RECORD -> decodeRecord(name, schema)
       Schema.Type.ENUM -> decodeEnum(name, schema)
       Schema.Type.ARRAY -> decodeList(name, schema)
-      Schema.Type.MAP -> CodeBlock.builder().addStatement("decodeMap(%S, record)", name).build()
+      Schema.Type.MAP -> decodeMap(name, schema)
       Schema.Type.UNION -> decodeUnion(name, schema)
       Schema.Type.FIXED -> TODO("f")
       Schema.Type.STRING -> decodeString(name)
@@ -41,6 +43,16 @@ fun decodeBytes(name: String): CodeBlock {
 
 fun decodeRecord(name: String, schema: Schema): CodeBlock {
    return CodeBlock.builder().add("${schema.name}.decode($name as GenericRecord)").build()
+}
+
+fun decodeMap(name: String, schema: Schema): CodeBlock {
+   return CodeBlock.builder().addStatement("when ($name) {")
+      .indent()
+      .addStatement("is Map<*,*> -> $name.map { it.key.toString() to ${decode(schema.valueType, "it.value")} }.toMap()")
+      .addStatement("else -> error(\"Unknown type for map schema $$name\")")
+      .unindent()
+      .add("}")
+      .build()
 }
 
 fun decodeList(name: String, schema: Schema): CodeBlock {
