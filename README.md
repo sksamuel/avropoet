@@ -138,6 +138,10 @@ Avropoet currently supports the following logical types:
 
 ## Changelog
 
+### 1.0.11
+
+* Fixed 2nd parameter decoding in unions
+
 ### 1.0.10
 
 * Added decode support for maps
