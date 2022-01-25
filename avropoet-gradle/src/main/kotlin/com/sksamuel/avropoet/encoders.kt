@@ -69,5 +69,5 @@ fun encodeRecord(name: String): CodeBlock {
 
 fun encodeUnion(name: String, schema: Schema): CodeBlock {
    require(schema.isNullableUnion())
-   return CodeBlock.builder().add("$name?.let { ${encode(schema.types[1], name)} }").build()
+   return CodeBlock.builder().add("$name?.let { ${encode(schema.types[1], "it")} }").build()
 }
