@@ -138,6 +138,10 @@ Avropoet currently supports the following logical types:
 
 ## Changelog
 
+### 1.0.14
+
+* Only do null field check for nullable fields
+
 ### 1.0.13
 
 * Handle missing fields if they are nullable
