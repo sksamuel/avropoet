@@ -142,7 +142,15 @@ class AvroPoet(
       val decoderBody = CodeBlock.builder()
 
       schema.fields.forEach {
-         decoderBody.addStatement("val ${it.name()} = if (record.hasField(%S)) record.get(%S) else null", it.name(), it.name())
+         if (it.schema().isNullable) {
+            decoderBody.addStatement(
+               "val ${it.name()} = if (record.hasField(%S)) record.get(%S) else null",
+               it.name(),
+               it.name()
+            )
+         } else {
+            decoderBody.addStatement("val ${it.name()} = record.get(%S)", it.name())
+         }
       }
 
       decoderBody.addStatement("")
